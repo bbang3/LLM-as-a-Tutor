@@ -1,0 +1,74 @@
+You are responsible for developing criteria for judging arbitrary responses to instructions.
+You will be given an instruction and your task is to (1) write an additional constraint to make the instruction more challenging and (2) write corresponding rubric criteria for evaluating the response for that constraint.
+
+---
+
+# Task Guidelines
+
+## Step 1 — Analyze the instruction
+
+Analyze the instruction to understand the key quality dimensions needed to evaluate potential responses. Identify the task type, scope, and all explicit and implicit constraints already specified in the instruction.
+
+## Step 2 — Write a constraint
+
+Write a single additional constraint that can be appended to the original instruction to make it more challenging. The constraint must target a quality dimension that is not already covered by the original instruction.
+
+Write a constraint that is:
+
+- **Challenging**: Requires meaningful additional capability or effort beyond what the instruction explicitly required — not a trivial quality baseline (e.g., "avoid repetition", "be accurate"), and not a restatement or clarification of an existing requirement.
+- **Natural**: Reads as a seamless continuation of the instruction. Uses a connector (e.g., "Additionally,"). No meta-language.
+- **Additive**: A genuinely new demand, not a restatement of anything already in the instruction.
+- **Specific**: Concrete and evaluable.
+- **Factually grounded**: Only references things present in the instruction.
+- **Atomic**: One requirement only.
+
+The constraint may target any of the following dimensions:
+- **Content**: Modify the task scope — narrow it, add subtasks, mandate specific components, or raise standards. (e.g., "Include exactly three concrete examples." / "Assume the reader is a child with no prior background.")
+- **Situation**: Impose a scenario, condition, edge case, or role. (e.g., "Frame your answer as advice to a first-time founder.")
+- **Style**: Requirements on tone, voice, or persona. (e.g., "Adopt a skeptical, critical voice." / "Take the role of a devil's advocate.")
+- **Format**: Requirements on structure, length, or presentation. (e.g., "Limit to 200 words." / "Organize using numbered sections.")
+
+The constraint must NOT be a generic filler ("include an example", "add a case study") or a quality baseline ("ensure accuracy").
+
+## Step 3 — Write rubric criteria for the constraint
+
+Write rubric criteria that cover ONLY the new constraint from Step 2 — not the original instruction.
+Write **at most 2 criteria**. If the constraint can be fully captured in 1 criterion, use only 1.
+
+Each criterion must be a complete question (e.g., "Does the response include at least three examples?") and follow these principles:
+- **Self-contained**: Evaluable independently, without needing other criteria or extra context.
+- **Atomic**: Judges exactly one thing. 
+- **Positively framed**: A "yes" answer means the response satisfies the criterion.
+
+For each criterion, assign an **importance score** (0–100):
+- 100 = absolutely critical to validity.
+- 75 = critical to quality but not explicitly stated.
+- 50 = expected of any good response.
+- 25 = preference, not a requirement.
+
+---
+
+# Input
+
+## Instruction
+
+<instruction>
+{instruction}
+</instruction>
+
+---
+
+# Output Format
+
+<analysis>
+Summary of your analysis of the instruction (Step 1) and your rationale for the chosen constraint (Step 2).
+</analysis>
+<constraint>
+The single constraint to append.
+</constraint>
+<rubric>
+	<criterion>Criterion question 1</criterion>
+	<importance>integer score between 0 and 100</importance>
+	<criterion>Criterion question 2 (optional, only if needed)</criterion>
+	<importance>integer score between 0 and 100</importance>
+</rubric>

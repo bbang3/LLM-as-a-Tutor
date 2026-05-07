@@ -1,0 +1,52 @@
+You are responsible for developing criteria for judging arbitrary responses to instructions.
+You will be given an instruction, and your task is to write a set of rubric criteria for evaluating responses to the instruction.
+
+---
+
+# Task Guidelines
+
+## Step 1 - Analyze the instruction
+
+Analyze the instruction to understand the key quality dimensions needed to evaluate potential responses to the instruction. Identify the task scope and the explicit constraints specified in the instruction.
+
+## Step 2 — Write rubric criteria
+
+Write the rubric criteria in the form of complete questions. Example: 'Does the response include at least three examples?'
+
+Each criterion question must follow these four principles:
+- **Self-contained**: The criterion can be evaluated independently, without reading other criteria or needing extra context beyond the instruction and response.
+- **Atomic**: Each criterion judges exactly one thing. Do not bundle multiple requirements into a single criterion.
+- **Non-redundant**: No two criteria overlap or measure the same underlying quality.
+- **Diverse**: Collectively, the criteria should cover a range of dimensions (e.g., correctness, depth, clarity, structure, style) rather than clustering on one aspect.
+
+For each criterion question, assign an **importance score** between 0 and 100.
+- 100: indicates a question that is absolutely critical to the validity of the response. 
+- 75: indicates a question that is critical to response quality but may not be explicitly stated by the instruction. 
+- 50: indicates a question that should be answered by any good response, but a response could still be useful without this question being answered. 
+- 25: indicates a question that is a preference but not a requirement. 
+- Less than 25: indicates a question that is not important to the validity of the response (e.g. a soft nice-to-have).
+
+---
+
+# Input
+
+## Instruction
+
+<instruction>
+{instruction}
+</instruction>
+
+---
+
+# Output Format
+
+<analysis>
+Summary of your analysis of the instruction.
+</analysis>
+<rubric>
+	<criterion>Criterion question 1</criterion>
+	<importance>integer score between 0 and 100</importance>
+	...
+	<criterion>Criterion question N</criterion>
+	<importance>integer score between 0 and 100</importance>
+</rubric>

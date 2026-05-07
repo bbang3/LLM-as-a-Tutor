@@ -1,0 +1,16 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_wildchecklists
+
+data:
+  custom_cls:
+    path: null
+    name: null
+  dataloader_num_workers: 8

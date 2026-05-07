@@ -1,0 +1,46 @@
+# Evol-Instruct baseline (offline prompt evolution; no online data generation).
+#
+# Trains on a static dataset where each prompt has been pre-evolved by
+# Qwen3-8B through M=4 chain rounds (5 distilabel methods, byte-identical
+# to the EVA-baseline templates) and the general rubric regenerated on the
+# evolved prompt. See baselines/evol_instruct/ for the offline pipeline
+# that produced ``BBang3/wildchecklists-evol-instruct``.
+#
+# This is the "EVA minus RM-based selection" baseline: same evolution
+# mechanism as EVA, but prompts to evolve are picked uniformly at random
+# (effectively all prompts here, since chain depth is 1-to-1) instead of
+# weighted by max-min reward gap.
+#
+# AdaptiveDataset is disabled (custom_cls null) so the trainer falls back
+# to the plain RLHFDataset and ``data_generator`` is never instantiated —
+# the rubric and prompt stay frozen across all training epochs.
+
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: evol_instruct_baseline
+
+data:
+  # Disable AdaptiveDataset → plain RLHFDataset; data_generator is not
+  # invoked during training. ``requirements_general`` / ``weights_general``
+  # columns are already populated by baselines/evol_instruct/evol_instruct_offline.py.
+  custom_cls:
+    path: null
+    name: null
+  dataloader_num_workers: 8
+  train_files: BBang3/wildchecklists-evol-instruct
+
+custom_reward_function:
+  reward_kwargs:
+    source_dispatch:
+      __default__:
+        keep_keys: ["requirements_general", "weights_general", "prompt"]
+        reward_kwargs:
+          requirements_key: requirements_general
+          weights_key: weights_general

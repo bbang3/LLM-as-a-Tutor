@@ -1,0 +1,52 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+# EVA-style baseline: scalar RM scores rollouts, judge handles evolutions.
+#
+# Pipeline per batch (canonical EVA paper algorithm):
+#   1.   Policy rollouts on the original prompt (data_generator.n_rollouts=6
+#        — distinct from PPO's actor_rollout_ref.rollout.n).
+#   1.5. Score every (prompt, response) pair with the scalar RM
+#        (ArmoRM-Llama3-8B-v0.1).
+#   1.6. info(x) = max(scores) - min(scores) per prompt.
+#   1.7. Weighted-sample K = round(N * eva_top_k_ratio) high-info prompts
+#        without replacement (weights ∝ info, uniform fallback otherwise).
+#   1.8/9. Sleep RM, wake judge. For each selected position run M = 4
+#        evolutions; each evolution uniformly picks one of 5 distilabel
+#        methods (constraints / deepen / concretizing / reasoning / breadth).
+#   1.10. 80/20 mix into next batch: round(N * eva_evolved_mix_ratio) slots
+#        get their prompt replaced from the evolved pool, the rest pass
+#        through unchanged.
+#   2.   Regenerate the general rubric for the evolved-mix slots only.
+# Constraint / adaptive / refine stages are skipped — this is a separate
+# baseline, not stacked.
+
+trainer:
+  experiment_name: llm_tutor_eva
+
+data_generator:
+  mode: eva_baseline_colocated
+  evol_instruct_dir: data_generation/prompts/evol_instruct/
+
+  # Step 1 rollouts used ONLY for EVA's max-min info estimation. Distinct
+  # from ``actor_rollout_ref.rollout.n`` (which is PPO's per-prompt
+  # rollout count for advantage estimation).
+  n_rollouts: 6
+
+  # Scalar reward model used to score policy rollouts. Hosted as a SECOND
+  # vLLM engine inside RewardModelManager, sharing the judge's resource
+  # pool via wake/sleep rotation. Replica count is auto-derived
+  # (world_size // tp). gpu_memory_utilization is inherited from the judge
+  # (only one engine is awake at a time, so they share the same budget).
+  scalar_rm_path: RLHFlow/ArmoRM-Llama3-8B-v0.1
+  scalar_rm_max_model_len: 4096
+
+  # EVA hyperparameters (paper defaults).
+  eva_top_k_ratio: 0.25
+  eva_evolutions_per_prompt: 4
+  eva_evolved_mix_ratio: 0.8

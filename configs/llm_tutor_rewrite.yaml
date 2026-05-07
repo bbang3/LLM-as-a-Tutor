@@ -1,0 +1,17 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_rewrite
+
+data_generator:
+  mode: constraint_rewrite
+  # Rewrite mode replaces the instruction in place rather than appending a
+  # constraint, then regenerates the general rubric on the rewritten prompt.
+  # No constraint-specific or adaptive rubric is produced.
+  constraint_rewrite_prompt: data_generation/prompts/rewrite_variant.txt

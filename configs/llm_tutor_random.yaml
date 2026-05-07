@@ -1,0 +1,20 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_random
+
+data_generator:
+  mode: constraint_no_adaptive_random
+  # Like ``constraint_no_adaptive`` but only a random fraction of eligible
+  # samples per epoch get a constraint; the rest pass through with general
+  # rubric only. Subset is reseeded from the current epoch so the same epoch
+  # always picks the same samples (compatible with epoch_cache_dir reuse).
+  constraint_judgment_prompt: data_generation/prompts/constraint_generation_always.txt
+  # Fraction of eligible samples per epoch that receive a constraint (∈ [0, 1]).
+  constraint_random_ratio: 0.2852

@@ -1,0 +1,15 @@
+repos:
+  # Ruff for linting and import sorting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
+    hooks:
+      # Run the linter with auto-fix (includes import sorting)
+      - id: ruff-check
+        args: [--fix, --config=pyproject.toml]
+
+  # Black for code formatting
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3.12

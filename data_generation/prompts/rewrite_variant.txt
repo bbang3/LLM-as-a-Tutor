@@ -1,0 +1,107 @@
+You are evaluating an instruction and two model responses. Your task is to determine whether the model has completely mastered this instruction — leaving no room for quality improvement — and therefore needs more challenging instruction to create a meaningful learning signal. If needed, you will REWRITE the original instruction so that the new instruction is asking for more difficult tasks.
+
+The default answer is NO. Only say YES when the evidence clearly shows the model has hit its quality ceiling on this instruction.
+
+---
+
+# Step 1 — Evaluate each response independently
+
+For each response, assess:
+
+**Accuracy**: Is the information correct? Are there any factual errors, hallucinations, unsupported claims, or uncertain guesses?
+
+**Completeness**: Does it address everything the instruction asks for? Is anything missing or treated superficially?
+
+**Depth**: Does it go beyond surface-level treatment? Would a knowledgeable reader find it thorough, or would they want more?
+
+**Execution quality**: Is it well-organized, clear, and appropriate in tone for the task?
+
+Summarize the quality of each response. Be honest and critical — look for genuine weaknesses, not just things you could add.
+
+# Step 2 — Compare the two responses
+
+Now compare them:
+
+**Quality gap**: Is one response noticeably better than the other? If so, the model produces variable quality on this instruction — there is already a gradient to learn from. → `<decision>no</decision>`
+
+**Approach divergence**: Do the responses take meaningfully different approaches, structures, or perspectives? If so, the model is still exploring how best to handle this instruction — variance already exists. → `<decision>no</decision>`
+
+**Content convergence**: Do both responses arrive at essentially the same answer with the same structure and coverage? If so, this is a sign the model has settled on one approach and produces it consistently.
+
+# Step 3 — Make the decision
+
+Say YES only when ALL of the following are true:
+- Both responses are **high quality** — accurate, complete, well-executed. Neither has meaningful weaknesses.
+- Both responses **converge** — similar approach, structure, and content. They are nearly interchangeable.
+- There is **no gradient** — you cannot meaningfully say one is better than the other, because both are equally strong.
+
+If ANY of the following is true, say NO:
+- Either response has factual errors, hallucinations, or incorrect information.
+- Either response is superficial, generic, or lacks depth on a topic that warrants it.
+- Either response misses something the instruction asked for.
+- One response is clearly better than the other.
+- The responses take substantially different approaches or cover different ground.
+- Either response shows uncertainty (hedging, listing multiple possibilities, "it could be...").
+
+When in doubt, say NO.
+
+# Step 4 — Identify the dimension to push (only if decision is yes)
+
+## 4a. Pick the dimension
+
+Both responses do everything well — along which dimension is the task being satisfied too easily? Target the dimension where asking for more would force the model past its current ceiling.
+
+## 4b. Choose a dimension
+
+Select ONE:
+- **Content**: Tighten scope, deepen coverage, or demand more rigorous subject matter.
+- **Situation**: Constrain the scenario, condition, edge case, or role.
+- **Style**: Demand a specific tone, voice, or persona.
+- **Format**: Demand a specific structure, length limit, or presentation style.
+
+The harder version must be:
+- **Challenging**: Pushes the dimension past what either response attempted.
+- **Specific**: Concrete and evaluable.
+- **Factually grounded**: Only references things present in the instruction or responses.
+
+# Step 5 — Rewrite the instruction (only if decision is yes)
+
+Rewrite the instruction over from scratch, asking for a harder version of the same task pushed along the dimension you chose in Step 4.
+
+If decision is no, leave the `<rewrite>` block empty.
+
+---
+
+# Input
+
+## Instruction
+
+<instruction>
+{instruction}
+</instruction>
+
+## Model Responses
+
+<response_1>
+{response_1}
+</response_1>
+
+<response_2>
+{response_2}
+</response_2>
+
+---
+
+# Output Format
+
+<analysis>
+Step 1: Quality assessment of each response — strengths and genuine weaknesses.
+Step 2: Comparison — quality gap? approach divergence? content convergence?
+Step 3: Decision — has the model fully mastered this instruction with no room to improve?
+Step 4 (if yes): Which dimension is being satisfied too easily? Chosen dimension and how the rewrite will push it.
+Step 5 (if yes): Brief note on the rewrite approach.
+</analysis>
+<decision>yes or no</decision>
+<rewrite>
+The full rewritten instruction (required only when decision is yes). It is the same task asked in a harder form along the chosen dimension, written from scratch as one coherent prompt.
+</rewrite>

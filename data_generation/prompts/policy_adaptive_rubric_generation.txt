@@ -1,0 +1,106 @@
+You are evaluating an instruction, two model responses, and an existing rubric. Your task is to determine whether the existing rubric fails to discern the two responses — catching none of the observable failures — and therefore needs an additional criterion. The default is NO; say YES only when the evidence clearly shows the rubric cannot discern the responses.
+
+---
+
+# Step 1 — Spot concrete, observed failures
+
+For each response, list specific, instruction-relevant **failures** — missing required elements, internal contradictions, malformed structure, misinterpretations, obvious quality defects — that you can verify directly from the text. Tag which response(s) exhibit each.
+
+**Self-verifiability (hard constraint).** Only count failures confirmable from the response text and the instruction alone — not anything requiring external knowledge, factual lookup, or domain expertise (e.g., "the cited paper does not exist", "the historical date is wrong"). If unsure, drop.
+
+If neither response has a self-verifiable failure, the decision will be NO.
+
+# Step 2 — Compare against the existing rubric
+
+**Existing gradient**: Do one or more existing criteria already produce a different answer on response 1 vs response 2? If so, the rubric is already discriminating — there is already signal to learn from. → `<decision>no</decision>`
+
+**Any covered failure**: For each failure from Step 1, ask whether an existing criterion — even approximately — would catch it. If **at least one** is already covered, the rubric is doing meaningful work. Leave it alone. → `<decision>no</decision>`
+
+**No coverage at all**: Does the rubric fail to catch a single observed failure, and produce no differentiating signal between the two responses? Only this case warrants a new criterion.
+
+# Step 3 — Make the decision
+
+Say YES only when ALL are true:
+- At least one concrete, self-verifiable failure identified.
+- **None** of the failures is caught — even approximately — by any existing criterion.
+- **No existing criterion** produces a different answer between the two responses.
+- The uncaught failure(s) represent a class of problem any plausible response could exhibit — not a quirk of these samples.
+
+Say NO if ANY is true (when in doubt, say NO):
+- No self-verifiable failures found.
+- At least one failure is already caught (or nearly caught) by an existing criterion.
+- Existing rubric already produces a different answer on at least one criterion.
+- Failure requires external knowledge, or is specific to these samples rather than a class of problem.
+- Uncertain whether any criterion catches any failure.
+
+# Step 4 — Write new criteria (only if decision is yes)
+
+## 4a. Select targets
+
+From the uncovered failures, select the most load-bearing class(es). Target **at most 2 criteria**; use 1 if sufficient.
+
+## 4b. Generalize each failure into a criterion
+
+For each selected failure, write **one criterion question** that detects this *class* of problem in **any** response to this instruction.
+
+Each criterion must satisfy ALL of these:
+
+- **Grounded.** Cites a specific failure from Step 1. If you cannot cite one, drop it.
+- **Substantive, not surface.** Targets a meaningful quality dimension (content, reasoning, coverage, depth, accuracy) — not formatting, typography, specific word choice, or length counts. Ask what underlying quality the failure manifests and write around that. Do **not** write criteria like "Does the response use bullet points?", "Does the response include 'therefore'?", or "Is the response at least 500 words?" unless the instruction demands such form.
+- **Generalized.** Does not reference entities or phrases appearing **only** in the sample responses. *Exception:* items the instruction itself enumerates (named characters, required sections, listed keywords) may be referenced by name.
+- **Self-contained.** Evaluable from the instruction and a single response alone.
+- **Atomic.** Judges exactly one thing.
+- **Reachable.** A competent, good-faith response could reasonably satisfy it. No extreme demands ("lists 50 examples", "cites 10 peer-reviewed sources") unless the instruction requires them.
+- **Natural to the task type.** Any structural or formal demand must appear in the instruction or be a natural expectation of the task type (a story has a narrative arc; a financial report shows numbers). Do **not** impose structure the instruction does not require and the task does not naturally imply.
+- **Non-trivial.** Could plausibly separate a good response from a mediocre one. "Any reasonable attempt passes" is too weak — avoid vague checks like "addresses the topic" or "is in English" that any competent response would pass.
+- **Self-verifiable.** A judge reading only the instruction and one response can score it without external knowledge.
+- **Complete question.** E.g., "Does the response include a clearly labeled summary section?"
+- **Positive polarity.** Higher score clearly means a better response. Avoid "A or B" listings (bad: *"…list only beginner exercises, or include advanced variations?"*; good: *"…restrict its list to beginner exercises?"*). When the instruction forbids X, phrase around successfully avoiding X (bad: *"Does the response use passive voice?"*; good: *"Does the response avoid passive voice throughout?"*).
+
+## 4c. Assign importance (0–100)
+
+**100** critical to validity · **75** critical to quality, not explicit in instruction · **50** expected of any good response · **25** preference · **<25** soft nice-to-have.
+
+---
+
+# Input
+
+## Instruction
+
+<instruction>
+{instruction}
+</instruction>
+
+## Existing Rubric
+
+<existing_rubric>
+{existing_rubric}
+</existing_rubric>
+
+## Model Responses
+
+<response_1>
+{response_1}
+</response_1>
+
+<response_2>
+{response_2}
+</response_2>
+
+---
+
+# Output Format
+
+<analysis>
+Step 1: Self-verifiable failures, tagged with which response(s) exhibit them.
+Step 2: For each failure, whether an existing criterion covers it; whether any criterion already discriminates.
+Step 3: Decision — is it difficult to discern the responses using the existing rubric?
+Step 4 (if yes): For each new criterion, name the underlying failure and confirm it is substantive, natural to the task type, non-trivial, reachable, self-verifiable, and generalized.
+</analysis>
+<decision>yes or no</decision>
+<rubric>
+	<criterion>Criterion question 1</criterion>
+	<importance>integer score between 0 and 100</importance>
+	<criterion>Criterion question 2 (optional, only if needed)</criterion>
+	<importance>integer score between 0 and 100</importance>
+</rubric>

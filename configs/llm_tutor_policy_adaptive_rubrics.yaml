@@ -1,0 +1,23 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_policy_adaptive_rubrics
+
+data_generator:
+  # Step 1 + 2 + 5 only (no constraint pipeline). Step 5 uses the v2 adaptive
+  # template that renders ``<existing_rubric>`` from the persisted general +
+  # previously-accumulated adaptive rubric and emits its own ``<decision>``
+  # tag: only when the existing rubric cannot discern the two rollouts does
+  # it append new criteria. Runs on rollouts_A over the ORIGINAL prompt for
+  # every sample with >=2 valid rollouts. Adaptive criteria accumulate across
+  # epochs; decision=no epochs leave the persisted adaptive rubric intact.
+  mode: adaptive_conditional_rubric
+
+  # v2 adaptive template: gates on <existing_rubric> via its own <decision> tag.
+  adaptive_rubric_prompt: data_generation/prompts/policy_adaptive_rubric_generation.txt

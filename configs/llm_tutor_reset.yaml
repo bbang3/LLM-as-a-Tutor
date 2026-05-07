@@ -1,0 +1,20 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_reset
+
+# Identical to llm_tutor (constraint mode) except the persisted prompt
+# does NOT accumulate across epochs. Step 1 base rollout still reads the
+# current override (X + c_prev) so the constraint judge can detect
+# saturation against what the policy was actually trained on; if the
+# judge says decision=yes, the new constraint replaces c_prev rather
+# than appending. Constraint rubrics are reset in lockstep. decision=no
+# epochs leave both the prompt and the constraint rubric untouched.
+data_generator:
+  mode: constraint_reset

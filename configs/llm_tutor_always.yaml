@@ -1,0 +1,17 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_always
+
+data_generator:
+  mode: constraint_no_adaptive
+  # Always-on constraint generator: every sample gets a fresh constraint and
+  # constraint-specific rubric, generated from the instruction alone (no base
+  # rollout, no decision gate, no adaptive stage).
+  constraint_judgment_prompt: data_generation/prompts/constraint_generation_always.txt

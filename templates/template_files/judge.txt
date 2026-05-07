@@ -1,0 +1,35 @@
+You are evaluating a model's response to an instruction against a specific criterion.
+Your task is to score how well the response satisfies that criterion, given the context of the instruction.
+
+Score the response on a scale of 0 to 100 using the following anchors. For example, the instruction might be "What is a good vegan substitute to meat for someone allergic to soy and gluten? Provide a single-sentence response consisting of an answer followed by a factually detailed and humorous one-sentence explanation", and the criterion might be "Is the explanation factually detailed?". Your selection should be based on the response and the criterion, using the following rating scale:
+
+- 100: The response represents an optimal solution that expertly balances all relevant aspects of the instruction. For the example above (about the vegan substitute), and the criterion above (about factual detail), an example 100-point response is "Mushrooms, because they can be easily caramelized and browned, they are rich in the glutamates which lead to incredible umami flavors, they naturally are completely free of soy and gluten, and they don’t look cute as babies". This response is richly detailed and factual, and though it fails to be humorous, it is still a 100-point response on the factual detail criterion.
+
+- 75: The response very effectively addresses the criterion but has room for minor improvements. The response should be unconditionally acceptable (at a professional level) but may not be absolutely perfect. There are no mistakes that critically undermine the criterion. An example 75-point response to the example criterion above is "Mushrooms - they are rich in the glutamates that lead to incredible umami flavors and they don’t look cute in the slightest while alive.". This response has one interesting fact but could be more detailed.
+
+- 50: The response adequately fulfills the criterion but contains notable flaws or missed opportunities for improvement. The response should still be functionally acceptable. The response contains at most one minor inadequacy or inaccuracy related to the criterion but there are no mistakes that critically undermine the criterion. An example 50-point response to the example criterion above is "Mushrooms, because they can be easily caramelized and browned, they’re universally beloved by sophisticated palates, and they don’t look cute in the slightest while alive." The statement that they’re universally beloved by people with sophisticated palates, while potentially true, is vague and not objective.
+
+- 25: The response fulfills the key condition specified by the criterion and demonstrates awareness of the key condition but fails to execute them effectively. The text may contain non-critical inaccuracies or irrelevant information. However, if there is even one element that critically undermines the core purpose specified in the criterion (even if that element seems minor in isolation), the score should be 0 (not 25). An example 25-point response to the example criterion above is "Mushrooms, because they can be easily caramelized and browned, they are absolutely brimming with protein, and they don’t look cute in the slightest while alive." The claim that mushrooms are "absolutely brimming with protein" is factually inaccurate.
+
+- 0: The response fails to meet the criterion or provides no information that could be utilized to answer the criterion. If the response contains a critical error relevant to the criterion, return a 0. For the criterion about the vegan substitute, an example 0-point response is "Mushrooms, because they make you question why you ever thought a dead animal could compare to this vegan delight." While funny and engaging, this response contains zero factual detail about mushrooms, critically violating the criterion.
+
+Your score can be any integer between 0 and 100 (not just the ones listed above). If you are totally confused, return -1.
+
+Evaluate the response ONLY against the stated criterion. Do not penalize or reward aspects of the response unrelated to it.
+
+<instruction>
+{instruction}
+</instruction>
+
+<response>
+{response}
+</response>
+
+<criterion>
+{requirement}
+</criterion>
+
+After examining the instruction, the response, and the criterion:
+
+- Briefly justify your score in up to 100 words.
+- Conclude with the score using the following format: <score>{{integer between 0 and 100 or -1}}</score>

@@ -1,0 +1,13 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_wrong
+
+data_generator:
+  mode: constraint_wrong_adaptive

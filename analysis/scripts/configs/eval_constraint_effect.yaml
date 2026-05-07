@@ -1,0 +1,52 @@
+# eval_constraint_effect.yaml
+#
+# Isolate the pure constraint-addition effect on general rubric scores.
+# For each c_added=True prompt (epoch 0 of kimyuji/generate_constraint_v1):
+#   1. Base policy (Qwen3-1.7B) generates 8 rollouts on original prompt
+#   2. Base policy generates 8 rollouts on constraint-added prompt
+#   3. Judge (Qwen3-8B) scores both sets with the stored rubric,
+#      per-criterion independently (judge template).
+# No rubric regeneration, no adaptive rubric. Uses stored general + constraint.
+
+data_parallel_size: auto
+
+dataset:
+  name: kimyuji/generate_constraint_v1
+  split: train
+  # filtered in the script: epoch == 0 AND constraint_added
+
+n_samples: 300
+seed: 42
+n_rollouts: 8
+n_judge_runs: 1  # training uses per-criterion single judge pass
+
+policy_model:
+  name: Qwen/Qwen3-1.7B
+  gpu_memory_utilization: 0.7
+  sampling:
+    temperature: 0.6
+    top_p: 0.95
+    top_k: 20
+    max_tokens: 4096
+  enable_thinking: true
+
+judge_model:
+  name: Qwen/Qwen3-8B
+  gpu_memory_utilization: 0.7
+  sampling:
+    temperature: 0.6
+    top_p: 0.95
+    top_k: 20
+    max_tokens: 8192
+  enable_thinking: true
+
+judge_prompt: templates/template_files/judge.txt
+
+parse:
+  thinking: '<think>(.*?)</think>'
+
+output:
+  dir: data_generation/output
+  filename: eval_constraint_effect_epoch0
+  format: json
+  hub_repo: null

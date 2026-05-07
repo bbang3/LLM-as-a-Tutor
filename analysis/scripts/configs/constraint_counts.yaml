@@ -1,0 +1,7 @@
+# constraint_counts.yaml
+#
+# Per-epoch constraint criterion counts (newly added, total, cumulative versions).
+# Reads JSONL produced by analysis/scripts/eval_epoch_difficulty.py.
+# Output is printed to stdout only.
+
+input_path: /shared/sangminhwang/pllm_logs/rubric_policy_v1.4_constraint_adaptive_rubric_only_4k_all_epochs_nested.jsonl

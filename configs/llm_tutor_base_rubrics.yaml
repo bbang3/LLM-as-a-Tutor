@@ -1,0 +1,25 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_base_rubrics
+
+data:
+  custom_cls:
+    path: null
+    name: null
+  dataloader_num_workers: 8
+
+custom_reward_function:
+  reward_kwargs:
+    source_dispatch:
+      __default__:
+        keep_keys: ["requirements_general", "weights_general", "prompt"]
+        reward_kwargs:
+          requirements_key: requirements_general
+          weights_key: weights_general
