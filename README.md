@@ -131,7 +131,7 @@ run_with_offline_rubric.sh     Two-stage training launcher
 If you find this work useful, please consider citing:
 
 ```bibtex
-@misc{kim2026llmasatutorpolicyawarepromptadaptation,
+@misc{kim2026llmtutor,
       title={LLM-as-a-Tutor: Policy-Aware Prompt Adaptation for Non-Verifiable RL}, 
       author={Yujin Kim and Namgyu Ho and Sangmin Hwang and Joonkee Kim and Yongjin Yang and Sangmin Bae and Seungone Kim and Jaehun Jung and Se-Young Yun and Hwanjun Song},
       year={2026},
