@@ -1,11 +1,18 @@
-# LLM-as-a-Tutor: Policy-Aware Prompt Adaptation for Non-Verifiable RL
+# 🎓 LLM-as-a-Tutor: Policy-Aware Prompt Adaptation for Non-Verifiable RL
 
-Reference implementation for the paper. The tutor LLM detects prompts whose
+<a href="https://arxiv.org/abs/2607.04412"><img src="https://img.shields.io/badge/Paper-arXiv:2607.04412-B31B1B"></a>
+<a href="#-bibtex"><img src="https://img.shields.io/badge/Paper-BibTex-yellow"></a>
+
+Official Implementation of LLM-as-a-Tutor. The tutor LLM detects prompts whose
 rollouts have collapsed in quality and appends an atomic constraint, raising
 prompt difficulty in step with the policy and producing a self-calibrating
 training signal for non-verifiable instruction-following RL.
 
-## Setup
+<p align="center">
+  <img src="assets/figure.png" width="100%" alt="LLM-as-a-Tutor overview">
+</p>
+
+## 🛠️ Setup
 
 ```sh
 # uv (https://docs.astral.sh/uv/getting-started/installation/)
@@ -16,7 +23,7 @@ uv pip install "flash-attn>=2.8.3" --no-build-isolation
 Environment variables: `OPENAI_API_KEY`, `HF_TOKEN`. Optional: `WANDB_API_KEY`,
 `VERL_LOG_LEVEL` (default `WARNING`).
 
-## Dataset
+## 📦 Dataset
 
 The retained configs point at the published HF dataset
 `BBang3/wildchecklists-with-general` (4K WildChat prompts already pre-seeded
@@ -31,7 +38,7 @@ uv run python preprocess.py \
     --prompt_column_name prompt
 ```
 
-## Training
+## 🚀 Training
 
 All paper runs share the same two-stage launcher: pre-fill the general rubric
 on the training parquet, then start GRPO. Pass any config under `configs/`:
@@ -73,6 +80,7 @@ All variants use the same append-based modification but differ in the trigger.
 | Always | `llm_tutor_always` | Append constraint to every prompt |
 | Random | `llm_tutor_random` | Append to a random 28% per epoch |
 | Wrong | `llm_tutor_wrong` | Examiner reads 8B generator's rollouts, not policy's |
+| Metric | `llm_tutor_metric` | Metric gate (rollout-score std) replaces the LLM examiner |
 
 #### Modification strategy ablation
 
@@ -84,7 +92,7 @@ All variants use the same adaptive trigger but differ in how the prompt is modif
 | Reset | `llm_tutor_reset` | Replace prior constraint each epoch |
 | Rewrite | `llm_tutor_rewrite` | Rewrite the whole prompt instead of appending |
 
-### Special baselines
+### 🧪 Special baselines
 
 **Evol-Instruct.** Offline-evolve prompts once with `baselines/evol_instruct/`,
 then train against the resulting dataset (`evol_instruct_baseline.yaml` already
@@ -95,13 +103,13 @@ regenerate locally see `baselines/evol_instruct/README.md`.
 the 1.7B policy on them. End-to-end recipe in
 `baselines/sft_distill/README.md`.
 
-## Analysis
+## 📊 Analysis
 
 Scripts under `analysis/scripts/` consume `epoch_state` and rollout JSONLs
 written during training to reproduce the paper's analysis figures. See
 `analysis/README.md` for the per-figure pipeline.
 
-## Layout
+## 🗂️ Layout
 
 ```
 configs/                       Hydra configs (one per paper row)
@@ -116,4 +124,20 @@ baselines/
 analysis/scripts/              Analysis figure reproduction
 preprocess.py                  HF/JSON → parquet conversion utility
 run_with_offline_rubric.sh     Two-stage training launcher
+```
+
+## 📖 BibTeX
+
+If you find this work useful, please consider citing:
+
+```bibtex
+@misc{kim2026llmasatutorpolicyawarepromptadaptation,
+      title={LLM-as-a-Tutor: Policy-Aware Prompt Adaptation for Non-Verifiable RL}, 
+      author={Yujin Kim and Namgyu Ho and Sangmin Hwang and Joonkee Kim and Yongjin Yang and Sangmin Bae and Seungone Kim and Jaehun Jung and Se-Young Yun and Hwanjun Song},
+      year={2026},
+      eprint={2607.04412},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2607.04412}, 
+}
 ```

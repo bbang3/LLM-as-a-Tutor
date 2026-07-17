@@ -1,0 +1,43 @@
+hydra:
+  searchpath:
+    - file://verl/verl/trainer/config
+
+defaults:
+  - llm_tutor_base
+  - _self_
+
+trainer:
+  experiment_name: llm_tutor_metric
+
+# Metric-based prompt modification baseline (Adaptiveness ablation).
+#
+# Replaces the LLM `<decision>` judge of the canonical `constraint` mode with a
+# metric gate: sample n=8 rollouts, score them against the general rubric (same
+# per-criterion judge protocol as the training reward, run through the
+# generator==judge backend), and treat a prompt as saturated when the
+# cross-rollout std of the per-rollout weighted-mean score (0-100 scale) is
+# below `saturation_std_threshold`. Saturated prompts get an UNCONDITIONAL
+# constraint append via the gating-free constraint_generation_always generator.
+# Everything downstream (constraint rubric accumulation, length guard, persist)
+# is identical to `constraint` mode.
+data_generator:
+  mode: constraint_metric
+  schedule: epoch
+
+  # 8 rollouts per prompt for the score distribution.
+  n_rollouts: 8
+
+  # Saturated when rollout-std < 3.0 (0-100 scale). Tune here.
+  saturation_std_threshold: 3.0
+
+  # Minimum valid rollouts a prompt needs before the gate scores it. A prompt
+  # with fewer valid rollouts is skipped (not scored -> not saturated -> no
+  # constraint). Need >=2 to compute a std at all; 4 gives a more trustworthy
+  # std estimate (vs the n=8 sampled).
+  metric_min_valid_rollouts: 4
+
+  # Gating-free constraint generator (no decision tag — always appends).
+  constraint_judgment_prompt: data_generation/prompts/constraint_generation_always.txt
+
+  # Per-criterion scoring template (defaults to this; listed for clarity).
+  metric_judge_prompt: templates/template_files/judge.txt

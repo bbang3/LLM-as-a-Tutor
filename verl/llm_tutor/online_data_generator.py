@@ -39,6 +39,17 @@ Modes:
                                        ``epoch_cache_dir``). Step 1 (policy rollout) is
                                        skipped. Pair with
                                        ``constraint_generation_always.txt``.
+  - constraint_metric                : Like ``constraint`` (Step 1 + 2 + 3, general +
+                                       constraint rubric) but the LLM ``<decision>`` judge
+                                       is replaced by a metric gate: Step 1 rollouts are
+                                       scored against the general rubric (same per-criterion
+                                       ``judge`` protocol as the training reward), and a
+                                       prompt is saturated when the cross-rollout std of the
+                                       per-rollout weighted-mean score (0-100 scale) falls
+                                       below ``data_generator.saturation_std_threshold``.
+                                       Saturated prompts get an UNCONDITIONAL constraint
+                                       append via ``_gen_constraint_always``. Pair with
+                                       ``constraint_generation_always.txt``.
   - constraint_reset                 : Like ``constraint`` but the persisted prompt is
                                        re-based on the original instruction whenever a
                                        new constraint is added — ``X + c_prev`` becomes
@@ -126,6 +137,12 @@ from llm_tutor._parse import (
     parse_rubric_output_lenient,
     split_thinking,
 )
+from llm_tutor.metric_saturation_gate import (
+    aggregate_saturation,
+    build_score_inputs,
+    parse_score_fallback,
+    parse_score_strict,
+)
 
 if TYPE_CHECKING:
     from llm_tutor.adaptive_dataset import AdaptiveDataset
@@ -138,6 +155,7 @@ _VALID_MODES = {
     "constraint_wrong_adaptive",
     "constraint_no_adaptive",
     "constraint_no_adaptive_random",
+    "constraint_metric",
     "constraint_rewrite",
     "adaptive_conditional_rubric",
     "eva_baseline_colocated",
@@ -148,6 +166,18 @@ _MODES_WITH_CONSTRAINT = {
     "constraint_wrong_adaptive",
     "constraint_no_adaptive",
     "constraint_no_adaptive_random",
+    "constraint_metric",
+}
+# Metric-based saturation gate: instead of the LLM ``<decision>`` judge,
+# ``constraint_metric`` scores the Step 1 rollouts against the general rubric
+# (same per-criterion ``judge`` protocol as the training reward), computes the
+# cross-rollout std of the per-rollout weighted-mean score, and treats prompts
+# with ``std < data_generator.saturation_std_threshold`` as saturated. Saturated
+# prompts then get an unconditional constraint append via
+# ``_gen_constraint_always`` (paired with ``constraint_generation_always.txt``).
+# Needs the base rollout (Step 1), so it is NOT in ``_MODES_WITHOUT_BASE_ROLLOUT``.
+_MODES_WITH_METRIC_GATE = {
+    "constraint_metric",
 }
 # Modes whose epoch-to-epoch persisted prompt drops the previous constraint
 # before joining the new one — i.e. ``X + c1 + c2`` becomes ``X + c2`` rather
@@ -198,6 +228,7 @@ _MODES_WITH_CONSTRAINT_RUBRIC = {
     "constraint_wrong_adaptive",
     "constraint_no_adaptive",
     "constraint_no_adaptive_random",
+    "constraint_metric",
 }
 # Modes where adaptive rubrics are *accumulated* across epochs instead of replaced.
 _MODES_WITH_ADAPTIVE_APPEND = {
@@ -308,6 +339,13 @@ class OnlineDataGenerator:
         self._top_k: int | None = dg_cfg.get("top_k", None)
         self._enable_thinking: bool = bool(dg_cfg.get("enable_thinking", True))
         self._n_rollouts: int = int(dg_cfg.get("n_rollouts", 2))
+        # ``constraint_metric``: a prompt is saturated when the cross-rollout std
+        # of the per-rollout general-rubric weighted-mean score (0-100 scale) is
+        # below this threshold. Default 3.0 (cf. the ~6 base-model rollout-std).
+        # Ignored by every other mode.
+        self._saturation_std_threshold: float = float(dg_cfg.get("saturation_std_threshold", 3.0))
+        # Minimum valid rollouts a prompt needs before the metric gate scores it.
+        self._metric_min_valid_rollouts: int = int(dg_cfg.get("metric_min_valid_rollouts", 2))
 
         # Cap on concurrent generator HTTP requests to the local vLLM router.
         self._concurrency_limit: int = int(dg_cfg.get("concurrency_limit", 0))
@@ -320,6 +358,10 @@ class OnlineDataGenerator:
             "constraint_judgment": dg_cfg.get("constraint_judgment_prompt"),
             "constraint_rewrite": dg_cfg.get("constraint_rewrite_prompt"),
             "adaptive_rubric": dg_cfg.get("adaptive_rubric_prompt"),
+            # constraint_metric: per-criterion scoring template (same protocol as
+            # the training reward judge). Defaults to the shipped judge.txt so the
+            # gate's scores match the reward's; override via metric_judge_prompt.
+            "metric_judge": dg_cfg.get("metric_judge_prompt", "templates/template_files/judge.txt"),
         }
         self._template_cache: dict[str, str] = {}
 
@@ -360,6 +402,19 @@ class OnlineDataGenerator:
 
         if mode in _MODES_WITH_REWRITE and not self._template_paths.get("constraint_rewrite"):
             raise ValueError(f"mode={mode!r} requires data_generator.constraint_rewrite_prompt to be set")
+
+        if mode in _MODES_WITH_METRIC_GATE:
+            if not self._template_paths.get("constraint_judgment"):
+                raise ValueError(
+                    f"mode={mode!r} requires data_generator.constraint_judgment_prompt to be set "
+                    "(use the gating-free constraint_generation_always.txt)"
+                )
+            if not self._template_paths.get("metric_judge"):
+                raise ValueError(f"mode={mode!r} requires data_generator.metric_judge_prompt to be set")
+            if self._saturation_std_threshold < 0:
+                raise ValueError(
+                    f"data_generator.saturation_std_threshold must be >= 0; got {self._saturation_std_threshold!r}"
+                )
 
         # Fraction of eligible samples that receive a constraint each epoch in
         # ``_MODES_WITH_RANDOM_DECISION``. Optional everywhere else (left as
@@ -840,7 +895,22 @@ class OnlineDataGenerator:
                         self._constraint_random_ratio,
                         self._current_epoch,
                     )
-                if self._mode in _MODES_WITHOUT_BASE_ROLLOUT:
+                if self._mode in _MODES_WITH_METRIC_GATE:
+                    # Metric gate replaces the LLM decision judge: score the
+                    # Step 1 rollouts against the general rubric, keep prompts
+                    # whose cross-rollout std is below threshold, then append a
+                    # constraint to those unconditionally.
+                    saturated = self._metric_saturation_gate(prompts, rollouts_A, general_rubrics, eligible, indices)
+                    logger.info(
+                        "[Step 3] constraint generation (metric-gated) for %d/%d saturated samples",
+                        len(saturated),
+                        len(eligible),
+                    )
+                    decisions, constraints, new_constraint_rubrics = self._gen_constraint_always(
+                        prompts,
+                        saturated,
+                    )
+                elif self._mode in _MODES_WITHOUT_BASE_ROLLOUT:
                     logger.info(
                         "[Step 3] constraint generation (no rollout) for %d samples",
                         len(eligible),
@@ -1519,6 +1589,68 @@ class OnlineDataGenerator:
             constraints[i] = c_text
             constraint_rubrics[i] = list(c_rubric)
         return decisions, constraints, constraint_rubrics
+
+    def _metric_saturation_gate(
+        self,
+        prompts: list[str],
+        rollouts: list[list[str]],
+        general_rubrics: dict[int, list[dict]],
+        eligible: list[int],
+        indices: list[int],
+    ) -> list[int]:
+        """Return positions whose rollouts are saturated under the general rubric.
+
+        Scores each eligible prompt's Step 1 rollouts against its general rubric
+        with the per-criterion ``judge`` protocol (reused via the generator/
+        judge backend, generator == judge), computes the cross-rollout std of the
+        per-rollout weighted-mean score, and flags ``std <
+        self._saturation_std_threshold`` as saturated. Per-prompt metrics are
+        dumped to ``constraint_metric_summary.jsonl`` for calibration. Heavy
+        lifting (input build / parse / aggregate) lives in
+        ``metric_saturation_gate.py`` to keep this module thin.
+        """
+        template = self._load_template("metric_judge")
+        score_inputs, meta = build_score_inputs(
+            prompts,
+            rollouts,
+            general_rubrics,
+            eligible,
+            template,
+            min_valid_rollouts=self._metric_min_valid_rollouts,
+        )
+        if not score_inputs:
+            logger.info("[metric-gate] no scorable samples (eligible=%d)", len(eligible))
+            return []
+        raw_scores = self._generate_with_retry_keyed(
+            score_inputs,
+            parse_fn=parse_score_strict,
+            validate_fn=lambda s: s is not None,
+            format_parsed=lambda s: s,
+            fallback_parse_fn=parse_score_fallback,
+            fallback_validate_fn=lambda s: True,
+            label="metric_score",
+        )
+        saturated, metrics = aggregate_saturation(raw_scores, meta, self._saturation_std_threshold)
+        logger.info(
+            "[metric-gate] saturated %d/%d scored (std < %.2f)",
+            len(saturated),
+            len(meta),
+            self._saturation_std_threshold,
+        )
+        self._dump_debug(
+            [
+                {
+                    "label": "constraint_metric_summary",
+                    "epoch": self._current_epoch,
+                    "dataset_idx": indices[pos],
+                    "pos": pos,
+                    "threshold": self._saturation_std_threshold,
+                    **m,
+                }
+                for pos, m in metrics.items()
+            ]
+        )
+        return sorted(saturated)
 
     def _gen_constraint_rewrite_judgment(
         self,
